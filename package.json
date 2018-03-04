@@ -1,0 +1,29 @@
+{
+  "name": "text-emotion-analyzer",
+  "version": "1.0.0",
+  "description": "Text Emution Analyzer",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/papiot/text-emotion-analyzer.git"
+  },
+  "keywords": [
+    "machine",
+    "learning",
+    "ai",
+    "text",
+    "analyzer"
+  ],
+  "author": "Catalin Avram",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/papiot/text-emotion-analyzer/issues"
+  },
+  "homepage": "https://github.com/papiot/text-emotion-analyzer#readme",
+  "dependencies": {
+    "express": "^4.16.2"
+  }
+}
