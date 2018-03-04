@@ -4,7 +4,10 @@
   "description": "Text Emution Analyzer",
   "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "./node_modules/.bin/babel  ./src --experimental --source-maps-inline -d ./dist",
+    "start": "node dist/app.js",
+    "rebuild": "npm run build && npm run start"
   },
   "repository": {
     "type": "git",
@@ -24,6 +27,12 @@
   },
   "homepage": "https://github.com/papiot/text-emotion-analyzer#readme",
   "dependencies": {
+    "axios": "^0.18.0",
     "express": "^4.16.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-preset-env": "^1.6.1"
   }
 }
