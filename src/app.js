@@ -23,7 +23,7 @@ const startServer = () => {
         const myRequest = {
             "documents": [
                 {
-                    "language": "en",
+                    "language": "nl",
                     "id": "1235",
                     "text": phraze
                 }

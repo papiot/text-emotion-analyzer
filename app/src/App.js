@@ -50,28 +50,25 @@ class App extends Component {
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <h1 className="App-title">Welcome to React</h1>
+          {/* <img src={logo} className="App-logo" alt="logo" /> */}
+          <h1 className="App-title">Text analyzer 🎉</h1>
         </header>
-        <p className="App-intro">
-          To get started, edit <code>src/App.js</code> and save to reload.
-        </p>
 
         <p>
           Enter the text you want to analyze:
         </p>
 
-        <textarea onChange={(event) => this.onTextChanged(event)}>
+        <textarea style={{width: 400, height: 300, fontSize: 22}} onChange={(event) => this.onTextChanged(event)}>
 
         </textarea>
         <br/>
-        <button onClick = {(event) => this.onButtonClick(event)}>
+        <button style={{width: 150, height: 30, fontWeight: 600}} onClick = {(event) => this.onButtonClick(event)}>
           Get Emotion!
         </button>
         <br/>
 
         <p>
-          My text is: {this.state.analysis_result}
+          Text positivity: {this.state.analysis_result}
         </p>
       </div>
     );
