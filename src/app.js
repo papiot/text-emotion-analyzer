@@ -1,5 +1,46 @@
 'use strict'
 import axios from 'axios';
+import express from 'express';
+import bodyParser from 'body-parser';
+
+const app = express();
+
+const startServer = () => {
+    app.use(bodyParser.urlencoded({ extended: false }));
+    app.use(bodyParser.json());
+
+    app.get('/', (req, res) => res.send('Hello World!'))
+
+    app.listen(3000, () => console.log('Server started on port 3000'))
+
+    app.post('/analyze', (req,res) => {
+        const phraze = req.body.my_text_to_analyze;
+
+        console.log("Text to analyze is: ");
+        console.log(phraze);
+        
+
+        const myRequest = {
+            "documents": [
+                {
+                    "language": "en",
+                    "id": "1235",
+                    "text": phraze
+                }
+            ]
+        }
+
+        callServer(myRequest)
+            .then((response) => {
+                console.log(response.data);
+                console.log(response.status);
+                res.end("" + response.data.documents[0].score);
+            })
+            .catch((error) => {
+                console.log(error)
+            });
+    });
+}
 
 // Main function
 const main = () => {
@@ -40,14 +81,9 @@ const callServer = (withText) => {
             },
             json: true
         };
-        axios(authOptions)
-            .then((response) => {
-                console.log(response.data);
-                console.log(response.status);
-            })
-            .catch((error) => {
-                console.log(error)
-            })
+        return axios(authOptions);
+            
 }
 
-main();
+// main();
+startServer();
