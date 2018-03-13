@@ -17,8 +17,34 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var app = (0, _express2.default)();
 
 var startServer = function startServer() {
+
     app.use(_bodyParser2.default.urlencoded({ extended: false }));
     app.use(_bodyParser2.default.json());
+
+    // Endpoint used to test IBM Watson
+
+    app.get('/test-watson', function (req, res) {
+        console.log("Testing WATSON...");
+
+        var ToneAnalyzerV3 = require('watson-developer-cloud/tone-analyzer/v3');
+
+        var tone_analyzer = new ToneAnalyzerV3({
+            username: process.env.IBM_WATSON_TONE_ANALYZER_USERNAME,
+            password: process.env.IBM_WATSON_TONE_ANALYZER_PASSWORD,
+            version_date: '2017-09-21'
+        });
+
+        var params = {
+            'tone_input': {
+                "text": "Team, I know that times are tough! Product sales have been disappointing for the past three quarters. We have a competitive product, but we need to do a better job of selling it!"
+            },
+            'content_type': 'application/json'
+        };
+
+        tone_analyzer.tone(params, function (error, response) {
+            if (error) console.log('error:', error);else console.log(JSON.stringify(response, null, 2));
+        });
+    });
 
     app.get('/', function (req, res) {
         return res.send('Hello World!');
@@ -28,6 +54,7 @@ var startServer = function startServer() {
         return console.log('Server started on port 3000');
     });
 
+    // Endpoint used by the frontend to analyze the text
     app.post('/analyze', function (req, res) {
         var phraze = req.body.my_text_to_analyze;
 
