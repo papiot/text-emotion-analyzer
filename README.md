@@ -1,2 +1,3 @@
 # text-emotion-analyzer
-Nodejs analyzer of text. 
+Nodejs analyzer of text.
+ 
