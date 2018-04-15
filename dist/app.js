@@ -46,6 +46,31 @@ var startServer = function startServer() {
         });
     });
 
+    app.post('/analyze-watson', function (req, res) {
+        var phraze = req.body.my_text_to_analyze;
+
+        var ToneAnalyzerV3 = require('watson-developer-cloud/tone-analyzer/v3');
+
+        var tone_analyzer = new ToneAnalyzerV3({
+            username: process.env.IBM_WATSON_TONE_ANALYZER_USERNAME,
+            password: process.env.IBM_WATSON_TONE_ANALYZER_PASSWORD,
+            version_date: '2017-09-21'
+        });
+
+        var params = {
+            'tone_input': {
+                "text": phraze
+            },
+            'content_type': 'application/json'
+        };
+
+        tone_analyzer.tone(params, function (error, response) {
+            if (error) console.log('error:', error);else console.log(JSON.stringify(response, null, 2));
+            res.write(JSON.stringify(response, null, 2));
+            res.end();
+        });
+    });
+
     app.get('/', function (req, res) {
         return res.send('Hello World!');
     });
@@ -55,52 +80,55 @@ var startServer = function startServer() {
     });
 
     // Endpoint used by the frontend to analyze the text
-    app.post('/analyze', function (req, res) {
+    app.post('/analyze-sentiment', function (req, res) {
         var phraze = req.body.my_text_to_analyze;
+        var lng = req.body.language;
 
         console.log("Text to analyze is: ");
         console.log(phraze);
 
         var myRequest = {
             "documents": [{
-                "language": "nl",
+                "language": lng,
                 "id": "1235",
                 "text": phraze
             }]
         };
 
-        callServer(myRequest).then(function (response) {
+        msAnalyzerSentiment(myRequest).then(function (response) {
             console.log(response.data);
             console.log(response.status);
-            res.end("" + response.data.documents[0].score);
+            res.write(JSON.stringify(response.data));
+            res.end();
+        }).catch(function (error) {
+            console.log(error);
+        });
+    });
+
+    app.post('/analyze-keyphrases', function (req, res) {
+        var phraze = req.body.my_text_to_analyze;
+        var lng = req.body.language;
+
+        var myRequest = {
+            "documents": [{
+                "language": lng,
+                "id": "12345",
+                "text": phraze
+            }]
+        };
+
+        msAnalyzerKeyPhrazes(myRequest).then(function (response) {
+            console.log(response.data);
+            console.log(response.status);
+            res.write(JSON.stringify(response.data));
+            res.end();
         }).catch(function (error) {
             console.log(error);
         });
     });
 };
 
-// Main function
-var main = function main() {
-    var positiveText = {
-        "documents": [{
-            "language": "en",
-            "id": "1234",
-            "text": "It is such a beautiful day!!"
-        }]
-    };
-
-    var negativeText = {
-        "documents": [{
-            "language": "en",
-            "id": "1235",
-            "text": "This is such a lousy computer."
-        }]
-    };
-    callServer(positiveText);
-    callServer(negativeText);
-};
-
-var callServer = function callServer(withText) {
+var msAnalyzerSentiment = function msAnalyzerSentiment(withText) {
     console.log("For text: " + withText.documents[0].text);
 
     // You need MS Cognitive services API key for this to work
@@ -117,5 +145,20 @@ var callServer = function callServer(withText) {
     return (0, _axios2.default)(authOptions);
 };
 
-// main();
+var msAnalyzerKeyPhrazes = function msAnalyzerKeyPhrazes(withText) {
+    // You need MS Cognitive services API key for this to work
+    var authOptions = {
+        method: 'POST',
+        url: 'https://westeurope.api.cognitive.microsoft.com/text/analytics/v2.0/keyPhrases',
+        data: withText,
+        headers: {
+            'Ocp-Apim-Subscription-Key': process.env.MS_COGNITIVE_TEXT_ANALYZER,
+            'Content-Type': 'application/json; charset=UTF-8'
+        },
+        json: true
+    };
+    return (0, _axios2.default)(authOptions);
+};
+
 startServer();
+// main();
