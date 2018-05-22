@@ -75,8 +75,8 @@ var startServer = function startServer() {
         return res.send('Hello World!');
     });
 
-    app.listen(3000, function () {
-        return console.log('Server started on port 3000');
+    app.listen(4000, function () {
+        return console.log('Server started on port 4000');
     });
 
     // Endpoint used by the frontend to analyze the text
