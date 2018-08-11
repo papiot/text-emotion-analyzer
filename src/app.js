@@ -70,11 +70,8 @@ const startServer = () => {
         })
     })
 
-    app.post('/analyze-watson', (req, res) => {
-        const phraze = req.body.my_text_to_analyze;
-        const lng = req.body.language;
-
-        if (lng !== 'en') {
+    const transalteText = (originalText) => {
+        return new Promise((resolve, reject) => {
             let LanguageTranslatorV3 = require('watson-developer-cloud/language-translator/v3');
 
             let languageTranslator = new LanguageTranslatorV3({
@@ -84,76 +81,104 @@ const startServer = () => {
             });
 
             let parameters = {
-                text: phraze,
+                text: originalText,
                 model_id: 'nl-en'
             };
 
             languageTranslator.translate(parameters, (err, response) => {
                 if (err) {
-                    console.log("Something went wrong with translation: ");
+                    console.log("Something went wrong with translation: ")
                     console.log(err)
+                    return reject(Error("Something went wrong translating.."))
                 } else {
                     const translatedText = response.translations[0].translation
-                    console.log("Translated text: ")
-                    console.log(translatedText)
-
-                    let ToneAnalyzerV3 = require('watson-developer-cloud/tone-analyzer/v3');
-
-                    let tone_analyzer = new ToneAnalyzerV3({
-                        username: process.env.IBM_WATSON_TONE_ANALYZER_USERNAME,
-                        password: process.env.IBM_WATSON_TONE_ANALYZER_PASSWORD,
-                        version_date: '2017-09-21'
-                    });
-
-                    var params = {
-                        'tone_input': {
-                                        "text": translatedText
-                                    },
-                        'content_type': 'application/json'
-                    };
-
-                    tone_analyzer.tone(params, (error, response) => {
-                        if (error)
-                            console.log('error:', error);
-                        else
-                            console.log(JSON.stringify(response, null, 2));
-                            response.english_translation = translatedText
-                            res.write(JSON.stringify(response, null, 2));
-                            res.end()
-                        }
-                    );
+                    return resolve(translatedText)
                 }
             })
+        })
+    }
 
-            return
+    const watsonToneAnalyze = (textToAnalyze) => {
+        return new Promise((resolve, reject) => {
+            let ToneAnalyzerV3 = require('watson-developer-cloud/tone-analyzer/v3');
+
+            let tone_analyzer = new ToneAnalyzerV3({
+                username: process.env.IBM_WATSON_TONE_ANALYZER_USERNAME,
+                password: process.env.IBM_WATSON_TONE_ANALYZER_PASSWORD,
+                version_date: '2017-09-21'
+            });
+
+            var params = {
+                'tone_input': {
+                                "text": textToAnalyze
+                            },
+                'content_type': 'application/json'
+            };
+
+            tone_analyzer.tone(params, (error, response) => {
+                if (error) {
+                    console.log('error:', error)
+                    return reject(Error("Something went wrong with ibm watson tone analyzer"))
+                } else {
+                    console.log(JSON.stringify(response, null, 2))
+                    response.english_translation = textToAnalyze
+                    if (response.document_tone.tones.length === 0) {
+                        console.log("No tones found, fallback to microsoft")
+                        const myRequest = {
+                            "documents": [
+                                {
+                                    "language": 'en',
+                                    "id": "1235",
+                                    "text": textToAnalyze
+                                }
+                            ]
+                        }
+                        msAnalyzerSentiment(myRequest).then((msResponse) => {
+                            console.log(msResponse.data)
+                            console.log(msResponse.status)
+                            response.microsoft_sentiment_fallback = msResponse.data
+                            return resolve(response)
+                        })
+                        .catch((error) => {
+                            console.log(error)
+                        })
+
+                    } else {
+                        return resolve(response)
+                    }
+                }
+                // return resolve(response)
+            })
+        })
+    }
+
+    app.post('/analyze-watson', (req, res) => {
+        const phraze = req.body.my_text_to_analyze;
+        const lng = req.body.language;
+
+        if (lng !== 'en') {
+            transalteText(phraze).then( (translatedText) => {
+                console.log("*** My translated text in the promise result")
+                console.log(translatedText)
+                watsonToneAnalyze(translatedText).then((watson_response) => {
+                    msAnalyzerKeyPhrazes(translatedText, 'en').then((msResponse) => {
+                        watson_response.ms_keyphrazes = msResponse.data
+                        res.write(JSON.stringify(watson_response, null, 2));
+                        res.end();
+                    })
+                    
+                })
+            });
+        } else {
+            watsonToneAnalyze(phraze).then((watson_response) => {
+                msAnalyzerKeyPhrazes(phraze, 'en').then((msResponse) => {
+                    watson_response.ms_keyphrazes = msResponse.data
+                    res.write(JSON.stringify(watson_response, null, 2));
+                    res.end();
+                })
+            })
         }
-
-        let ToneAnalyzerV3 = require('watson-developer-cloud/tone-analyzer/v3');
-
-        let tone_analyzer = new ToneAnalyzerV3({
-            username: process.env.IBM_WATSON_TONE_ANALYZER_USERNAME,
-            password: process.env.IBM_WATSON_TONE_ANALYZER_PASSWORD,
-            version_date: '2017-09-21'
-        });
-
-        var params = {
-            'tone_input': {
-                            "text": phraze
-                        },
-            'content_type': 'application/json'
-        };
-
-        tone_analyzer.tone(params, (error, response) => {
-            if (error)
-                console.log('error:', error);
-            else
-                console.log(JSON.stringify(response, null, 2));
-                res.write(JSON.stringify(response, null, 2));
-                res.end()
-            }
-        );
-
-    })
+    });
 
     app.get('/', (req, res) => res.send('Hello World!'))
 
@@ -193,17 +218,9 @@ const startServer = () => {
         const phraze = req.body.my_text_to_analyze;
         const lng = req.body.language;
 
-        const myRequest = {
-            "documents": [ 
-                {
-                    "language": lng,
-                    "id": "12345",
-                    "text": phraze
-                }
-            ]
-        }
+        
 
-        msAnalyzerKeyPhrazes(myRequest)
+        msAnalyzerKeyPhrazes(phraze, lng)
             .then((response) => {
                 console.log(response.data);
                 console.log(response.status);
@@ -234,12 +251,23 @@ const msAnalyzerSentiment = (withText) => {
     return axios(authOptions);           
 }
 
-const msAnalyzerKeyPhrazes = (withText) => {
+const msAnalyzerKeyPhrazes = (phraze, lng) => {
     // You need MS Cognitive services API key for this to work
+
+    const myRequest = {
+        "documents": [ 
+            {
+                "language": lng,
+                "id": "12345",
+                "text": phraze
+            }
+        ]
+    }
+
     const authOptions = {
             method: 'POST',
             url: 'https://westeurope.api.cognitive.microsoft.com/text/analytics/v2.0/keyPhrases',
-            data: withText,
+            data: myRequest,
             headers: {
                 'Ocp-Apim-Subscription-Key': process.env.MS_COGNITIVE_TEXT_ANALYZER,
                 'Content-Type': 'application/json; charset=UTF-8'
